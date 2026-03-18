@@ -23,7 +23,7 @@
     position: fixed;
     top: 0;
     left: 72px;
-    width: 240px;
+    width: 340px;
     height: 100vh;
     z-index: 100;
     display: flex;
@@ -52,7 +52,7 @@
     font-family: var(--font-display);
     font-size: 16px;
     font-weight: 600;
-    color: var(--header-primary);
+    color: #ffffff;
     box-shadow: 0 1px 0 var(--background-modifier-accent);
 }
 
