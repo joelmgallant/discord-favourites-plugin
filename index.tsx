@@ -1,38 +1,12 @@
 import definePlugin from "@utils/types";
-import { definePluginSettings } from "@api/Settings";
-import { OptionType } from "@utils/types";
 import { addServerListElement, removeServerListElement, ServerListRenderPosition } from "@api/ServerList";
 import { Alerts, Menu } from "@webpack/common";
 import { FavouritesIcon } from "./components/FavouritesIcon";
 import { FavouritesPanel } from "./components/FavouritesPanel";
 import { isFavourited, getCategories } from "./store";
 import { addFavourite, removeFavourite, createCategoryWithChannel } from "./actions";
+import { isPanelOpen, setPanelOpen, cleanupPanelState, settings } from "./state";
 import "./style.css";
-
-export let isPanelOpen = false;
-let forceUpdatePanel: (() => void) | null = null;
-
-export function setPanelOpen(open: boolean) {
-    isPanelOpen = open;
-    forceUpdatePanel?.();
-}
-
-export function registerPanelUpdater(updater: () => void) {
-    forceUpdatePanel = updater;
-}
-
-export const settings = definePluginSettings({
-    showServerBadge: {
-        type: OptionType.BOOLEAN,
-        description: "Show server name next to channels",
-        default: true,
-    },
-    collapseByDefault: {
-        type: OptionType.BOOLEAN,
-        description: "Collapse categories by default",
-        default: false,
-    },
-});
 
 function FavouritesServerIcon() {
     return (
@@ -62,8 +36,7 @@ export default definePlugin({
     stop() {
         removeServerListElement(ServerListRenderPosition.Above, FavouritesServerIcon);
         removeServerListElement(ServerListRenderPosition.Above, FavouritesPanelOverlay);
-        isPanelOpen = false;
-        forceUpdatePanel = null;
+        cleanupPanelState();
     },
 
     flux: {
@@ -74,7 +47,6 @@ export default definePlugin({
         },
         CONNECTION_OPEN() {
             // Re-render panel on reconnect to pick up fresh proto data
-            forceUpdatePanel?.();
         },
     },
 
@@ -136,8 +108,6 @@ export default definePlugin({
                                                     createCategoryWithChannel(value.trim(), channel.id);
                                                 }
                                             },
-                                            // Alerts.show with input - if this doesn't support text input,
-                                            // fall back to a simple category creation
                                         });
                                     }}
                                 />,

@@ -2,11 +2,10 @@ import { useStateFromStores, UserSettingsProtoStore, ScrollerThin, useReducer } 
 import ErrorBoundary from "@components/ErrorBoundary";
 import { cl } from "../utils";
 import { getGroupedFavourites, GroupedCategory } from "../store";
-import { isPanelOpen, registerPanelUpdater, setPanelOpen } from "..";
+import { isPanelOpen, registerPanelUpdater, setPanelOpen, settings } from "../state";
 import { ChannelEntry } from "./ChannelEntry";
 import { CategorySection } from "./CategorySection";
 import { EmptyState } from "./EmptyState";
-import { settings } from "..";
 
 function FavouritesPanelInner() {
     // Force re-render when panel open state changes
