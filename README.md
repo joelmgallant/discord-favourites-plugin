@@ -9,23 +9,27 @@ A Vencord plugin that shows all your favourite channels from across servers in o
 - Organize favourites into custom categories
 - Server name badges next to channels
 - Collapsible category sections
-- Reads/writes Discord's native favourites protobuf data
+- Persistent storage via Vencord DataStore (survives restarts)
 
 ## Setup
 
-1. Clone Vencord from source: `git clone https://github.com/Vendicated/Vencord`
-2. Install deps: `cd Vencord && pnpm install`
-3. Symlink this plugin: `ln -s /path/to/discord-favourites-plugin Vencord/src/userplugins/favouritesPanel`
-4. Build: `cd Vencord && pnpm build`
-5. Inject into Discord or use the browser extension
+```bash
+git clone --recurse-submodules <this-repo>
+./scripts/inject.sh
+```
+
+That's it. Restart Discord and enable "FavouritesPanel" in Vencord Settings > Plugins.
 
 ## Development
 
-After making changes, rebuild and restart Discord:
+After making changes to the plugin source, rebuild and re-inject:
 
+```bash
+./scripts/build.sh      # build only
+./scripts/inject.sh     # build + inject into Discord
 ```
-cd Vencord && pnpm build
-```
+
+Then restart Discord to see your changes.
 
 ## Settings
 
@@ -35,15 +39,20 @@ cd Vencord && pnpm build
 ## Architecture
 
 ```
-index.tsx          - Plugin entry point, settings, ServerListAPI integration, context menus
-store.ts           - Read layer for Discord's favourites protobuf data
-actions.ts         - Write layer for modifying favourites
-utils.ts           - Shared helpers (CSS class factory, navigation)
-style.css          - All plugin styles
+index.tsx              - Plugin entry, settings, ServerListAPI, context menus
+store.ts               - Favourites data layer (DataStore CRUD + change listeners)
+state.ts               - Shared UI state (panel open/close, settings)
+utils.ts               - Shared helpers (CSS class factory, navigation)
+style.css              - All plugin styles
 components/
-  FavouritesIcon.tsx    - Star icon for the server list
-  FavouritesPanel.tsx   - Main panel component
-  ChannelEntry.tsx      - Individual channel row
-  CategorySection.tsx   - Collapsible category with children
-  EmptyState.tsx        - Empty state when no favourites exist
+  FavouritesIcon.tsx   - Star icon for the server list
+  FavouritesPanel.tsx  - Main panel component (React portal)
+  ChannelEntry.tsx     - Individual channel row
+  CategorySection.tsx  - Collapsible category with children
+  EmptyState.tsx       - Empty state when no favourites exist
+scripts/
+  build.sh             - Build Vencord with plugin
+  inject.sh            - Build + inject into Discord
+vendor/
+  Vencord/             - Vencord source (git submodule)
 ```
