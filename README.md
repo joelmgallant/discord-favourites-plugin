@@ -1,6 +1,6 @@
-# Discord Favourites Panel (Vencord Plugin)
+# Discord Favourites Panel
 
-A Vencord plugin that shows all your favourite channels from across servers in one unified sidebar panel. Adds a star icon to the server list, with full add/remove/organize capabilities via channel context menus.
+A [Vencord](https://github.com/Vendicated/Vencord) plugin that shows all your favourite channels from across Discord servers in one unified sidebar panel.
 
 ## Features
 
@@ -14,11 +14,12 @@ A Vencord plugin that shows all your favourite channels from across servers in o
 ## Setup
 
 ```bash
-git clone --recurse-submodules <this-repo>
+git clone --recurse-submodules https://github.com/joelmgallant/discord-favourites-plugin.git
+cd discord-favourites-plugin
 ./scripts/inject.sh
 ```
 
-That's it. Restart Discord and enable "FavouritesPanel" in Vencord Settings > Plugins.
+Restart Discord and enable **FavouritesPanel** in Vencord Settings > Plugins.
 
 ## Development
 
@@ -33,8 +34,16 @@ Then restart Discord to see your changes.
 
 ## Settings
 
-- **Show Server Badge**: Display the server name next to each channel (default: on)
-- **Collapse by Default**: Start with category sections collapsed (default: off)
+| Setting | Description | Default |
+|---------|-------------|---------|
+| Show Server Badge | Display the server name next to each channel | On |
+| Collapse by Default | Start with category sections collapsed | Off |
+
+## How It Works
+
+The plugin uses Vencord's [ServerListAPI](https://github.com/Vendicated/Vencord/blob/main/src/api/ServerList.tsx) to add a star icon above the server list. Clicking the icon opens a panel rendered via a React portal overlay on top of the channel sidebar. Favourites are persisted locally using Vencord's DataStore (IndexedDB).
+
+Channel context menus are patched to add "Add to Favourites" / "Remove from Favourites" options, with support for organizing channels into named categories.
 
 ## Architecture
 
@@ -56,3 +65,11 @@ scripts/
 vendor/
   Vencord/             - Vencord source (git submodule)
 ```
+
+## Disclaimer
+
+This plugin is a standalone project and is not affiliated with or endorsed by Discord or Vencord. Using client modifications may violate Discord's Terms of Service. Use at your own risk.
+
+## License
+
+MIT
