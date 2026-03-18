@@ -28,7 +28,20 @@
     z-index: 100;
     display: flex;
     flex-direction: column;
-    background: var(--background-secondary);
+    background: #2b2d31;
+    border-right: 1px solid #3f4147;
+    box-shadow: 4px 0 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Inherit Discord theme when variables are available */
+:root[class*="theme-dark"] .vc-favourites-panel {
+    background: #2b2d31;
+    border-right-color: #3f4147;
+}
+
+:root[class*="theme-light"] .vc-favourites-panel {
+    background: #f2f3f5;
+    border-right-color: #e1e2e4;
 }
 
 .vc-favourites-panel-header {

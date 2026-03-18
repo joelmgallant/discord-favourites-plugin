@@ -1,4 +1,4 @@
-import { useStateFromStores, UserSettingsProtoStore, ScrollerThin, useReducer } from "@webpack/common";
+import { useStateFromStores, UserSettingsProtoStore, ScrollerThin, useReducer, ReactDOM } from "@webpack/common";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { cl } from "../utils";
 import { getGroupedFavourites, GroupedCategory } from "../store";
@@ -25,7 +25,7 @@ function FavouritesPanelInner() {
 
     const hasAny = grouped.categories.length > 0 || grouped.uncategorized.length > 0;
 
-    return (
+    const panel = (
         <div className={cl("panel")}>
             <div className={cl("panel-header")}>
                 <span>Favourites</span>
@@ -69,6 +69,10 @@ function FavouritesPanelInner() {
             </ScrollerThin>
         </div>
     );
+
+    // Portal to Discord's app mount to inherit theme CSS variables
+    const container = document.getElementById("app-mount") ?? document.body;
+    return ReactDOM.createPortal(panel, container);
 }
 
 export const FavouritesPanel = ErrorBoundary.wrap(FavouritesPanelInner, { noop: true });
