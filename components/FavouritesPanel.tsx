@@ -1,33 +1,49 @@
-import { useStateFromStores, UserSettingsProtoStore, ScrollerThin } from "@webpack/common";
-import { useSettings } from "@api/Settings";
+import { useStateFromStores, UserSettingsProtoStore, ScrollerThin, useReducer } from "@webpack/common";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { cl } from "../utils";
-import { getGroupedFavourites } from "../store";
+import { getGroupedFavourites, GroupedCategory } from "../store";
+import { isPanelOpen, registerPanelUpdater, setPanelOpen } from "..";
 import { ChannelEntry } from "./ChannelEntry";
 import { CategorySection } from "./CategorySection";
 import { EmptyState } from "./EmptyState";
+import { settings } from "..";
 
 function FavouritesPanelInner() {
+    // Force re-render when panel open state changes
+    const [, forceUpdate] = useReducer(x => x + 1, 0);
+    registerPanelUpdater(forceUpdate);
+
     // Re-render when proto store updates
     const grouped = useStateFromStores(
         [UserSettingsProtoStore],
         () => getGroupedFavourites()
     );
 
-    const settings = useSettings(["showServerBadge", "collapseByDefault"]);
-    const showServerBadge = settings.plugins?.FavouritesPanel?.showServerBadge ?? true;
-    const collapseByDefault = settings.plugins?.FavouritesPanel?.collapseByDefault ?? false;
+    const showServerBadge = settings.use(["showServerBadge"]).showServerBadge;
+    const collapseByDefault = settings.use(["collapseByDefault"]).collapseByDefault;
+
+    if (!isPanelOpen) return null;
 
     const hasAny = grouped.categories.length > 0 || grouped.uncategorized.length > 0;
 
     return (
         <div className={cl("panel")}>
             <div className={cl("panel-header")}>
-                Favourites
+                <span>Favourites</span>
+                <div
+                    className={cl("panel-close")}
+                    onClick={() => setPanelOpen(false)}
+                    role="button"
+                    tabIndex={0}
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z" />
+                    </svg>
+                </div>
             </div>
             <ScrollerThin className={cl("panel-content")} fade>
                 {!hasAny && <EmptyState />}
-                {grouped.categories.map((cat: any) => (
+                {grouped.categories.map((cat: GroupedCategory) => (
                     <CategorySection
                         key={cat.id}
                         category={cat}

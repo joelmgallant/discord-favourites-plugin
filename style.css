@@ -20,9 +20,14 @@
 }
 
 .vc-favourites-panel {
+    position: fixed;
+    top: 0;
+    left: 72px;
+    width: 240px;
+    height: 100vh;
+    z-index: 100;
     display: flex;
     flex-direction: column;
-    height: 100%;
     background: var(--background-secondary);
 }
 
@@ -139,4 +144,20 @@
 
 .vc-favourites-empty-hint {
     font-size: 13px;
+}
+
+.vc-favourites-panel-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--interactive-normal);
+}
+
+.vc-favourites-panel-close:hover {
+    color: var(--interactive-hover);
+    background: var(--background-modifier-hover);
 }

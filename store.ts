@@ -1,5 +1,5 @@
 import { proxyLazyWebpack } from "@webpack";
-import { ChannelStore, GuildStore, UserSettingsActionCreators, UserSettingsProtoStore } from "@webpack/common";
+import { ChannelStore, GuildStore, UserSettingsActionCreators } from "@webpack/common";
 
 const PreloadedUserSettingsActionCreators = proxyLazyWebpack(
     () => UserSettingsActionCreators.PreloadedUserSettingsActionCreators
@@ -93,13 +93,17 @@ export function getResolvedFavourites(): ResolvedFavourite[] {
     return getFavourites().map(resolveFavourite);
 }
 
-export function getGroupedFavourites(): { categories: ResolvedFavourite[]; uncategorized: ResolvedFavourite[] } {
+export interface GroupedCategory extends ResolvedFavourite {
+    children: ResolvedFavourite[];
+}
+
+export function getGroupedFavourites(): { categories: GroupedCategory[]; uncategorized: ResolvedFavourite[] } {
     const all = getResolvedFavourites();
     const categories = all.filter(f => f.type === FavouriteChannelType.CATEGORY);
     const channels = all.filter(f => f.type !== FavouriteChannelType.CATEGORY);
 
     const categorized = new Set<string>();
-    const grouped = categories.map(cat => {
+    const grouped: GroupedCategory[] = categories.map(cat => {
         const children = channels.filter(ch => ch.parentId === cat.id);
         children.forEach(ch => categorized.add(ch.id));
         return { ...cat, children };
@@ -107,5 +111,5 @@ export function getGroupedFavourites(): { categories: ResolvedFavourite[]; uncat
 
     const uncategorized = channels.filter(ch => !categorized.has(ch.id));
 
-    return { categories: grouped as any, uncategorized };
+    return { categories: grouped, uncategorized };
 }

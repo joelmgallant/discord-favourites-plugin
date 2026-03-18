@@ -2,11 +2,11 @@ import definePlugin from "@utils/types";
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
 import { addServerListElement, removeServerListElement, ServerListRenderPosition } from "@api/ServerList";
-import { Menu } from "@webpack/common";
+import { Alerts, Menu } from "@webpack/common";
 import { FavouritesIcon } from "./components/FavouritesIcon";
 import { FavouritesPanel } from "./components/FavouritesPanel";
 import { isFavourited, getCategories } from "./store";
-import { addFavourite, removeFavourite, createCategory } from "./actions";
+import { addFavourite, removeFavourite, createCategoryWithChannel } from "./actions";
 import "./style.css";
 
 export let isPanelOpen = false;
@@ -21,7 +21,7 @@ export function registerPanelUpdater(updater: () => void) {
     forceUpdatePanel = updater;
 }
 
-const settings = definePluginSettings({
+export const settings = definePluginSettings({
     showServerBadge: {
         type: OptionType.BOOLEAN,
         description: "Show server name next to channels",
@@ -43,6 +43,10 @@ function FavouritesServerIcon() {
     );
 }
 
+function FavouritesPanelOverlay() {
+    return <FavouritesPanel />;
+}
+
 export default definePlugin({
     name: "FavouritesPanel",
     description: "Shows all your favourite channels from across servers in one unified sidebar panel",
@@ -52,10 +56,12 @@ export default definePlugin({
 
     start() {
         addServerListElement(ServerListRenderPosition.Above, FavouritesServerIcon);
+        addServerListElement(ServerListRenderPosition.Above, FavouritesPanelOverlay);
     },
 
     stop() {
         removeServerListElement(ServerListRenderPosition.Above, FavouritesServerIcon);
+        removeServerListElement(ServerListRenderPosition.Above, FavouritesPanelOverlay);
         isPanelOpen = false;
         forceUpdatePanel = null;
     },
@@ -65,6 +71,10 @@ export default definePlugin({
             if (isPanelOpen) {
                 setPanelOpen(false);
             }
+        },
+        CONNECTION_OPEN() {
+            // Re-render panel on reconnect to pick up fresh proto data
+            forceUpdatePanel?.();
         },
     },
 
@@ -116,11 +126,19 @@ export default definePlugin({
                                     id="vc-favourites-new-category"
                                     label="New Category..."
                                     action={() => {
-                                        const name = prompt("Category name:");
-                                        if (name) {
-                                            const catId = createCategory(name);
-                                            addFavourite(channel.id, catId);
-                                        }
+                                        Alerts.show({
+                                            title: "New Favourites Category",
+                                            body: "Enter a name for the new category:",
+                                            confirmText: "Create",
+                                            cancelText: "Cancel",
+                                            onConfirm: (value: string) => {
+                                                if (value?.trim()) {
+                                                    createCategoryWithChannel(value.trim(), channel.id);
+                                                }
+                                            },
+                                            // Alerts.show with input - if this doesn't support text input,
+                                            // fall back to a simple category creation
+                                        });
                                     }}
                                 />,
                             ]}

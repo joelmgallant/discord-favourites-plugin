@@ -1,5 +1,5 @@
 import { proxyLazyWebpack } from "@webpack";
-import { FluxDispatcher, UserSettingsActionCreators } from "@webpack/common";
+import { FluxDispatcher } from "@webpack/common";
 import { PreloadedUserSettingsActionCreators, FavouriteChannelType, getRawFavourites } from "./store";
 
 function searchProtoClassField(localName: string, protoClass: any) {
@@ -11,10 +11,6 @@ function searchProtoClassField(localName: string, protoClass: any) {
 
 const FavouritesProtoClass = proxyLazyWebpack(
     () => searchProtoClassField("favorites", PreloadedUserSettingsActionCreators.ProtoClass)
-);
-
-const FavouriteChannelProtoClass = proxyLazyWebpack(
-    () => searchProtoClassField("favoriteChannels", FavouritesProtoClass)
 );
 
 function dispatchFavouritesUpdate(favouritesProto: any) {
@@ -68,13 +64,37 @@ export function createCategory(name: string): string {
     const favourites = cloneCurrentFavourites();
     if (!favourites.favoriteChannels) favourites.favoriteChannels = {};
 
-    // Generate a pseudo-snowflake ID for the category
     const categoryId = String(Date.now());
     favourites.favoriteChannels[categoryId] = {
         nickname: name,
         type: FavouriteChannelType.CATEGORY,
         position: getNextPosition(),
         parentId: "0",
+    };
+
+    dispatchFavouritesUpdate(favourites);
+    return categoryId;
+}
+
+export function createCategoryWithChannel(name: string, channelId: string): string {
+    const favourites = cloneCurrentFavourites();
+    if (!favourites.favoriteChannels) favourites.favoriteChannels = {};
+
+    const categoryId = String(Date.now());
+    const basePosition = getNextPosition();
+
+    favourites.favoriteChannels[categoryId] = {
+        nickname: name,
+        type: FavouriteChannelType.CATEGORY,
+        position: basePosition,
+        parentId: "0",
+    };
+
+    favourites.favoriteChannels[channelId] = {
+        nickname: "",
+        type: FavouriteChannelType.REFERENCE_ORIGINAL,
+        position: basePosition + 1,
+        parentId: categoryId,
     };
 
     dispatchFavouritesUpdate(favourites);

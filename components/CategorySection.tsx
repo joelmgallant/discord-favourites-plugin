@@ -1,10 +1,10 @@
 import { useState } from "@webpack/common";
 import { cl } from "../utils";
 import { ChannelEntry } from "./ChannelEntry";
-import { ResolvedFavourite } from "../store";
+import { GroupedCategory } from "../store";
 
 interface CategorySectionProps {
-    category: ResolvedFavourite & { children: ResolvedFavourite[]; };
+    category: GroupedCategory;
     showServerBadge: boolean;
     defaultCollapsed: boolean;
 }
