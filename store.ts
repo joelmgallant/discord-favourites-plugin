@@ -1,11 +1,7 @@
-import { proxyLazyWebpack } from "@webpack";
-import { ChannelStore, GuildStore, UserSettingsActionCreators } from "@webpack/common";
+import * as DataStore from "@api/DataStore";
+import { ChannelStore, GuildStore } from "@webpack/common";
 
-const PreloadedUserSettingsActionCreators = proxyLazyWebpack(
-    () => UserSettingsActionCreators.PreloadedUserSettingsActionCreators
-);
-
-export { PreloadedUserSettingsActionCreators };
+const STORE_KEY = "FavouritesPanel_favourites";
 
 export const enum FavouriteChannelType {
     UNSET = 0,
@@ -29,42 +25,57 @@ export interface ResolvedFavourite extends FavouriteChannel {
     accessible: boolean;
 }
 
-export function getRawFavourites(): Record<string, any> {
-    const current = PreloadedUserSettingsActionCreators.getCurrentValue();
-    // Field name may need adjustment based on discovery
-    return current?.favorites?.favoriteChannels ?? {};
+export interface GroupedCategory extends ResolvedFavourite {
+    children: ResolvedFavourite[];
+}
+
+// In-memory cache of favourites, kept in sync with DataStore
+let favouritesCache: Record<string, FavouriteChannel> = {};
+
+// Listeners that get called when favourites change
+const listeners: Set<() => void> = new Set();
+
+export function addChangeListener(listener: () => void) {
+    listeners.add(listener);
+}
+
+export function removeChangeListener(listener: () => void) {
+    listeners.delete(listener);
+}
+
+function notifyListeners() {
+    listeners.forEach(fn => fn());
+}
+
+export async function loadFavourites() {
+    const stored = await DataStore.get(STORE_KEY);
+    favouritesCache = stored ?? {};
+}
+
+async function saveFavourites() {
+    await DataStore.set(STORE_KEY, favouritesCache);
+    notifyListeners();
 }
 
 export function getFavourites(): FavouriteChannel[] {
-    const raw = getRawFavourites();
-    const result: FavouriteChannel[] = [];
-
-    for (const [id, fav] of Object.entries(raw)) {
-        result.push({
-            id,
-            nickname: (fav as any).nickname ?? "",
-            type: (fav as any).type ?? FavouriteChannelType.UNSET,
-            position: (fav as any).position ?? 0,
-            parentId: (fav as any).parentId ? String((fav as any).parentId) : null,
-        });
-    }
-
-    return result.sort((a, b) => a.position - b.position);
+    return Object.values(favouritesCache).sort((a, b) => a.position - b.position);
 }
 
 export function getCategories(): FavouriteChannel[] {
     return getFavourites().filter(f => f.type === FavouriteChannelType.CATEGORY);
 }
 
-export function getChannelFavourites(): FavouriteChannel[] {
-    return getFavourites().filter(f => f.type === FavouriteChannelType.REFERENCE_ORIGINAL);
-}
-
 export function isFavourited(channelId: string): boolean {
-    return channelId in getRawFavourites();
+    return channelId in favouritesCache;
 }
 
-export function resolveFavourite(fav: FavouriteChannel): ResolvedFavourite {
+function getNextPosition(): number {
+    const favs = Object.values(favouritesCache);
+    if (favs.length === 0) return 0;
+    return Math.max(...favs.map(f => f.position)) + 1;
+}
+
+function resolveFavourite(fav: FavouriteChannel): ResolvedFavourite {
     if (fav.type === FavouriteChannelType.CATEGORY) {
         return {
             ...fav,
@@ -89,16 +100,8 @@ export function resolveFavourite(fav: FavouriteChannel): ResolvedFavourite {
     };
 }
 
-export function getResolvedFavourites(): ResolvedFavourite[] {
-    return getFavourites().map(resolveFavourite);
-}
-
-export interface GroupedCategory extends ResolvedFavourite {
-    children: ResolvedFavourite[];
-}
-
 export function getGroupedFavourites(): { categories: GroupedCategory[]; uncategorized: ResolvedFavourite[] } {
-    const all = getResolvedFavourites();
+    const all = getFavourites().map(resolveFavourite);
     const categories = all.filter(f => f.type === FavouriteChannelType.CATEGORY);
     const channels = all.filter(f => f.type !== FavouriteChannelType.CATEGORY);
 
@@ -112,4 +115,84 @@ export function getGroupedFavourites(): { categories: GroupedCategory[]; uncateg
     const uncategorized = channels.filter(ch => !categorized.has(ch.id));
 
     return { categories: grouped, uncategorized };
+}
+
+// Write operations
+
+export async function addFavourite(channelId: string, parentId?: string) {
+    favouritesCache[channelId] = {
+        id: channelId,
+        nickname: "",
+        type: FavouriteChannelType.REFERENCE_ORIGINAL,
+        position: getNextPosition(),
+        parentId: parentId ?? null,
+    };
+    await saveFavourites();
+}
+
+export async function removeFavourite(channelId: string) {
+    delete favouritesCache[channelId];
+    await saveFavourites();
+}
+
+export async function createCategory(name: string): Promise<string> {
+    const categoryId = String(Date.now());
+    favouritesCache[categoryId] = {
+        id: categoryId,
+        nickname: name,
+        type: FavouriteChannelType.CATEGORY,
+        position: getNextPosition(),
+        parentId: null,
+    };
+    await saveFavourites();
+    return categoryId;
+}
+
+export async function createCategoryWithChannel(name: string, channelId: string): Promise<string> {
+    const categoryId = String(Date.now());
+    const basePosition = getNextPosition();
+
+    favouritesCache[categoryId] = {
+        id: categoryId,
+        nickname: name,
+        type: FavouriteChannelType.CATEGORY,
+        position: basePosition,
+        parentId: null,
+    };
+
+    favouritesCache[channelId] = {
+        id: channelId,
+        nickname: "",
+        type: FavouriteChannelType.REFERENCE_ORIGINAL,
+        position: basePosition + 1,
+        parentId: categoryId,
+    };
+
+    await saveFavourites();
+    return categoryId;
+}
+
+export async function removeCategory(categoryId: string) {
+    delete favouritesCache[categoryId];
+
+    // Uncategorize children
+    for (const fav of Object.values(favouritesCache)) {
+        if (fav.parentId === categoryId) {
+            fav.parentId = null;
+        }
+    }
+
+    await saveFavourites();
+}
+
+export async function moveFavouriteToCategory(channelId: string, categoryId: string | null) {
+    if (!favouritesCache[channelId]) return;
+    favouritesCache[channelId].parentId = categoryId;
+    await saveFavourites();
+}
+
+export async function renameFavourite(id: string, nickname: string) {
+    if (!favouritesCache[id]) return;
+    favouritesCache[id].nickname = nickname;
+    await saveFavourites();
 }

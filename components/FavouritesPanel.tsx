@@ -1,28 +1,28 @@
-import { useStateFromStores, UserSettingsProtoStore, ScrollerThin, useReducer, ReactDOM } from "@webpack/common";
+import { ScrollerThin, useReducer, useEffect, ReactDOM } from "@webpack/common";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { cl } from "../utils";
-import { getGroupedFavourites, GroupedCategory } from "../store";
+import { getGroupedFavourites, GroupedCategory, addChangeListener, removeChangeListener } from "../store";
 import { isPanelOpen, registerPanelUpdater, setPanelOpen, settings } from "../state";
 import { ChannelEntry } from "./ChannelEntry";
 import { CategorySection } from "./CategorySection";
 import { EmptyState } from "./EmptyState";
 
 function FavouritesPanelInner() {
-    // Force re-render when panel open state changes
     const [, forceUpdate] = useReducer(x => x + 1, 0);
     registerPanelUpdater(forceUpdate);
 
-    // Re-render when proto store updates
-    const grouped = useStateFromStores(
-        [UserSettingsProtoStore],
-        () => getGroupedFavourites()
-    );
+    // Re-render when favourites data changes in DataStore
+    useEffect(() => {
+        addChangeListener(forceUpdate);
+        return () => removeChangeListener(forceUpdate);
+    }, [forceUpdate]);
 
     const showServerBadge = settings.use(["showServerBadge"]).showServerBadge;
     const collapseByDefault = settings.use(["collapseByDefault"]).collapseByDefault;
 
     if (!isPanelOpen) return null;
 
+    const grouped = getGroupedFavourites();
     const hasAny = grouped.categories.length > 0 || grouped.uncategorized.length > 0;
 
     const panel = (
@@ -70,7 +70,6 @@ function FavouritesPanelInner() {
         </div>
     );
 
-    // Portal to Discord's app mount to inherit theme CSS variables
     const container = document.getElementById("app-mount") ?? document.body;
     return ReactDOM.createPortal(panel, container);
 }

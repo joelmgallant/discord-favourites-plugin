@@ -3,8 +3,7 @@ import { addServerListElement, removeServerListElement, ServerListRenderPosition
 import { Alerts, Menu } from "@webpack/common";
 import { FavouritesIcon } from "./components/FavouritesIcon";
 import { FavouritesPanel } from "./components/FavouritesPanel";
-import { isFavourited, getCategories } from "./store";
-import { addFavourite, removeFavourite, createCategoryWithChannel } from "./actions";
+import { isFavourited, getCategories, addFavourite, removeFavourite, createCategoryWithChannel, loadFavourites } from "./store";
 import { isPanelOpen, setPanelOpen, cleanupPanelState, settings } from "./state";
 import "./style.css";
 
@@ -28,7 +27,8 @@ export default definePlugin({
     dependencies: ["ServerListAPI"],
     settings,
 
-    start() {
+    async start() {
+        await loadFavourites();
         addServerListElement(ServerListRenderPosition.Above, FavouritesServerIcon);
         addServerListElement(ServerListRenderPosition.Above, FavouritesPanelOverlay);
     },
@@ -44,9 +44,6 @@ export default definePlugin({
             if (isPanelOpen) {
                 setPanelOpen(false);
             }
-        },
-        CONNECTION_OPEN() {
-            // Re-render panel on reconnect to pick up fresh proto data
         },
     },
 
