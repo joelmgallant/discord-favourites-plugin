@@ -1,3 +1,11 @@
+.vc-favourites-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    margin-bottom: 8px;
+}
+
 .vc-favourites-icon {
     display: flex;
     align-items: center;
@@ -5,17 +13,16 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: var(--background-primary);
+    background: #313338;
     cursor: pointer;
     transition: border-radius 0.15s ease, background-color 0.15s ease;
-    color: var(--channels-default);
-    margin-bottom: 8px;
+    color: #b5bac1;
 }
 
 .vc-favourites-icon:hover,
 .vc-favourites-icon.vc-favourites-active {
     border-radius: 16px;
-    background: var(--brand-500);
+    background: #5865f2;
     color: white;
 }
 
